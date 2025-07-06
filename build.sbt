@@ -18,7 +18,18 @@ libraryDependencies += "org.bytedeco" % "openblas" % "0.3.30-1.5.12"
 libraryDependencies += "org.bytedeco" % "openblas-platform" % "0.3.30-1.5.12"
 libraryDependencies += "org.bytedeco" % "cuda" % "12.9-9.10-1.5.12"
 libraryDependencies += "org.bytedeco" % "cuda-platform" % "12.9-9.10-1.5.12"
-
+// https://mvnrepository.com/artifact/io.github.manzurola/spacy4j
+libraryDependencies += "io.github.manzurola" % "spacy4j" % "0.4.0" pomOnly()
+// https://mvnrepository.com/artifact/org.imixs.workflow/imixs-ml-spacy
+libraryDependencies += "org.imixs.workflow" % "imixs-ml-spacy" % "1.1.6" pomOnly()
+// https://mvnrepository.com/artifact/org.renjin.cran/cleanNLP
+//libraryDependencies += "org.renjin.cran" % "cleanNLP" % "2.0.3-b1"
+// https://mvnrepository.com/artifact/org.renjin.cran/spacyr
+//libraryDependencies += "org.renjin.cran" % "spacyr" % "0.9.9-b1"
+// https://mvnrepository.com/artifact/com.github.texttechnologylab.textimager-uima/textimager-uima-spacy
+//libraryDependencies += "com.github.texttechnologylab.textimager-uima" % "textimager-uima-spacy" % "0.3.0.2"
+// https://mvnrepository.com/artifact/io.github.manzurola/spacy4j-adapters-spacy-server
+libraryDependencies += "io.github.manzurola" % "spacy4j-adapters-spacy-server" % "0.4.0"
 //libraryDependencies += "org.bytedeco" % "cuda-platform-redist" % "12.6-9.5-1.5.11"
 libraryDependencies += "junit" % "junit" % "4.13.2" % Test
 libraryDependencies += "org.scalameta" %% "munit" % "1.1.1"  % Test
