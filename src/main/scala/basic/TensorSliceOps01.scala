@@ -2,7 +2,7 @@ package basic
 
 import org.bytedeco.pytorch.global.torch as torchNative
 import torch.internal.NativeConverters.fromNative
-import torch.{---, ::, Slice}
+import torch.{---, ::, Slice, &&, &^, #&, &#}
 
 object TensorSliceOps01 {
 
@@ -298,25 +298,25 @@ object TensorSliceOps01 {
 
   }
 
-//  def randSelect03(): Unit = {
-//    val a = torch.rand(Seq(4, 3, 28, 28))
-//    // print(a[:2].shape) # torch.Size([2, 3, 28, 28])
-//    //print(a[:2, :1, :, :].shape) #torch.Size([2, 1, 28, 28])
-//    //print(a[:2, 1:, :, :].shape) # torch.Size([2, 2, 28, 28])
-//    //print(a[:2, -2:, :, :].shape) # torch.Size([2, 2, 28, 28])
-//    //print(a[:, :, 0:28:2, 0:28:2].shape) #torch.Size([4, 3, 14, 14])
-//    //print(a[:, :, ::2, ::2].shape) #torch.Size([4, 3, 14, 14])
-//    // Slice(extract(start), extract(end), extract(step))
-//    // ::(step: Int | Option[Int]): Slice(start, None, None) Slice(step, None, start)
-//    // &&(end: Int | Option[Int])  Slice(start, end, Some(1))
-//    println(s"a[:2].shape ${a(Seq(0, 1)).shape}  torch.Size([2, 3, 28, 28])")
-//    println(s"a[:, :, 0:28:2, 0:28:2].shape  ${a(::, ::, Slice(0, 28, 2), Slice(0, 28, 2)).shape} torch.Size([4,3, 14, 14])")
-//    println(s"a[:, :, ::2, ::2].shape  step  ${a(::, ::, 0.::(2), 0.::(2)).shape} torch.Size([4, 3, 14, 14])")
-//    println(s"a[:2, :1, :, :].shape ${a(0.&&(2), 0.&&(1), ::, ---).shape}  torch.Size([2,1, 28, 28])")
-//
-//    println(s"a[:2,  1:, :, :].shape) ${a(0.&&(2), 1.&&(3), ::, ---).shape}  torch.Size([2,2, 28, 28])")
-//    println(s"a[:2, -2:, :, :].shape) ${a(0.&&(2), -2.&&(3), ::, ---).shape}  torch.Size([2,2, 28, 28])")
-//  }
+  def randSelect03(): Unit = {
+    val a = torch.rand(Seq(4, 3, 28, 28))
+    // print(a[:2].shape) # torch.Size([2, 3, 28, 28])
+    //print(a[:2, :1, :, :].shape) #torch.Size([2, 1, 28, 28])
+    //print(a[:2, 1:, :, :].shape) # torch.Size([2, 2, 28, 28])
+    //print(a[:2, -2:, :, :].shape) # torch.Size([2, 2, 28, 28])
+    //print(a[:, :, 0:28:2, 0:28:2].shape) #torch.Size([4, 3, 14, 14])
+    //print(a[:, :, ::2, ::2].shape) #torch.Size([4, 3, 14, 14])
+    // Slice(extract(start), extract(end), extract(step))
+    // ::(step: Int | Option[Int]): Slice(start, None, None) Slice(step, None, start)
+    // &&(end: Int | Option[Int])  Slice(start, end, Some(1))
+    println(s"a[:2].shape ${a(Seq(0, 1)).shape}  torch.Size([2, 3, 28, 28])")
+    println(s"a[:, :, 0:28:2, 0:28:2].shape  ${a(::, ::, Slice(0, 28, 2), Slice(0, 28, 2)).shape} torch.Size([4,3, 14, 14])")
+    println(s"a[:, :, ::2, ::2].shape  step  ${a(::, ::, 0.::(2), 0.::(2)).shape} torch.Size([4, 3, 14, 14])")
+    println(s"a[:2, :1, :, :].shape ${a(0.&&(2), 0.&&(1), ::, ---).shape}  torch.Size([2,1, 28, 28])")
+
+    println(s"a[:2,  1:, :, :].shape) ${a(0.&&(2), 1.&&(3), ::, ---).shape}  torch.Size([2,2, 28, 28])")
+    println(s"a[:2, -2:, :, :].shape) ${a(0.&&(2), -2.&&(3), ::, ---).shape}  torch.Size([2,2, 28, 28])")
+  }
 
 //  def randSelect032(): Unit = {
 //    val tensor = torch.arange(0, 12).reshape(4, 3)
@@ -347,32 +347,32 @@ object TensorSliceOps01 {
   *  s:e       s.&&(e) [ only start end ]
   *  :e:t      slice(0,e,t) [only end step]
   * */
-//  def randSelect033(): Unit = {
-//    val tensor = torch.arange(0, 48).reshape(4, 3, 4)
-//    val t1 = tensor(0.&&(2), ::, 1.&&(4))
-//    val t2 = tensor(0.&&(2), ::, -2.&&(4))
-//    val t3 = tensor(0.&&(2), ::, 1.::)
-//    val t4 = tensor(0.&&(2), ::, -2.::)
-//    val t5 = tensor(0.&&(2), Slice(0, 1, 2), -2.::) //tensor[:2,:1:2, -2:]//torch.Size([2, 1, 2])
-//    println(s"tensor ${tensor}")
-//    println(s"t1: tensor[:2,::,  1:].shape) ${tensor(0.&&(2), ::, 1.&&(4)).shape}  torch.Size([2,3,3])")
-//
-//    println(s"t3: tensor[:2,::,  1:].shape) ${tensor(0.&&(2), ::, 1.::).shape}  torch.Size([2,3,3])")
-//
-//    println(s"t2: tensor[:2,::, -2:].shape) ${tensor(0.&&(2), ::, -2.&&(4)).shape}  torch.Size([2,3,2])")
-//    println(s"t4: tensor[:2,::, -2:].shape) ${tensor(0.&&(2), ::, -2.::).shape}  torch.Size([2,3,2])")
-//    println
-//    println(s"t1 ${t1}")
-//    println(s"t3 ${t3}")
-//    println(s"t2 ${t2}")
-//    println(s"t4 ${t4}")
-//  }
+  def randSelect033(): Unit = {
+    val tensor = torch.arange(0, 48).reshape(4, 3, 4)
+    val t1 = tensor(0.&&(2), ::, 1.&&(4))
+    val t2 = tensor(0.&&(2), ::, -2.&&(4))
+    val t3 = tensor(0.&&(2), ::, 1.::)
+    val t4 = tensor(0.&&(2), ::, -2.::)
+    val t5 = tensor(0.&&(2), Slice(0, 1, 2), -2.::) //tensor[:2,:1:2, -2:]//torch.Size([2, 1, 2])
+    println(s"tensor ${tensor}")
+    println(s"t1: tensor[:2,::,  1:].shape) ${tensor(0.&&(2), ::, 1.&&(4)).shape}  torch.Size([2,3,3])")
 
-  @main
+    println(s"t3: tensor[:2,::,  1:].shape) ${tensor(0.&&(2), ::, 1.::).shape}  torch.Size([2,3,3])")
+
+    println(s"t2: tensor[:2,::, -2:].shape) ${tensor(0.&&(2), ::, -2.&&(4)).shape}  torch.Size([2,3,2])")
+    println(s"t4: tensor[:2,::, -2:].shape) ${tensor(0.&&(2), ::, -2.::).shape}  torch.Size([2,3,2])")
+    println
+    println(s"t1 ${t1}")
+    println(s"t3 ${t3}")
+    println(s"t2 ${t2}")
+    println(s"t4 ${t4}")
+  }
+
+//  @main
   def main(): Unit = {
-//    randSelect034()
-//        randSelect033()
-//        randSelect03()
+        randSelect034()
+        randSelect033()
+        randSelect03()
         randSelect04()
         randSelect05()
         randSelect02()
@@ -393,28 +393,28 @@ object TensorSliceOps01 {
     //    indexBackward()
   }
 
-//  def randSelect034(): Unit = {
-//    val tensor = torch.arange(0, 320).reshape(4, 10, 8)
-//    val t1 = tensor(3.&&(6), Slice(0, 8, 3), -4.::) //tensor( 3:6, :8:3,-4:)
-//    println(s"t1 shape ${t1.shape} t1 shape ArraySeq(1, 3, 4)")
-//    println(s"t1 ${t1}")
-//    val t2 = tensor(3.&&(6))
-//    println(s"t2 shape ${t2.shape} t2 shape ArraySeq(1, 10, 8)")
-//    println(s"t2 ${t2}")
-//    //[[[244, 245, 246, 247],
-//    //  [268, 269, 270, 271],
-//    //  [292, 293, 294, 295]]]
-//
-//    val t3 = tensor(2.&&(6), Slice(0, 8, 3), -4.&&(2)) //t1 = tensor[2:6, :8:3, -4:2]
-//    println(s"t3 shape ${t3.shape} t3 shape (2, 3, 0)")
-//    println(s"t3 ${t3}")
-//    val t4 = tensor(2.&&(6), 0.&#(8, 2), -4.&&(-1)) //#:(8.::(2))
-//    println(s"t4 ${t4.shape}")
-//    val t5 = tensor(2.&&(6), 0.#&(8.::(2)), -4.&&(-1))
-//    println(s"t5 ${t5.shape}")
-//    val t6 = tensor(2.&&(6), 8.&^(0.::(2)), -4.&&(-1))
-//    println(s"t6 ${t6.shape}")
-//  }
+  def randSelect034(): Unit = {
+    val tensor = torch.arange(0, 320).reshape(4, 10, 8)
+    val t1 = tensor(3.&&(6), Slice(0, 8, 3), -4.::) //tensor( 3:6, :8:3,-4:)
+    println(s"t1 shape ${t1.shape} t1 shape ArraySeq(1, 3, 4)")
+    println(s"t1 ${t1}")
+    val t2 = tensor(3.&&(6))
+    println(s"t2 shape ${t2.shape} t2 shape ArraySeq(1, 10, 8)")
+    println(s"t2 ${t2}")
+    //[[[244, 245, 246, 247],
+    //  [268, 269, 270, 271],
+    //  [292, 293, 294, 295]]]
+
+    val t3 = tensor(2.&&(6), Slice(0, 8, 3), -4.&&(2)) //t1 = tensor[2:6, :8:3, -4:2]
+    println(s"t3 shape ${t3.shape} t3 shape (2, 3, 0)")
+    println(s"t3 ${t3}")
+    val t4 = tensor(2.&&(6), 0.&#(8, 2), -4.&&(-1)) //#:(8.::(2))
+    println(s"t4 ${t4.shape}")
+    val t5 = tensor(2.&&(6), 0.#&(8.::(2)), -4.&&(-1))
+    println(s"t5 ${t5.shape}")
+    val t6 = tensor(2.&&(6), 8.&^(0.::(2)), -4.&&(-1))
+    println(s"t6 ${t6.shape}")
+  }
 }
 
 

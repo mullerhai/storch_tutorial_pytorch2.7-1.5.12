@@ -30,9 +30,13 @@ object SimpleMNIST {
     System.setProperty("org.bytedeco.openblas.load", "mkl")
 // Create a new Net.
     val net = new SimpleMNIST.Nets
+    import org.bytedeco.pytorch.global.torch as torchNative
+    println(torchNative.cuda_is_available())
+    println(torchNative.cuda_device_count())
 
-// Create a multi-threaded data loader for the MNIST dataset.
-    val data_set = new MNIST("/Users/zhanghaining/Downloads/mnist").map(new ExampleStack)
+
+    // Create a multi-threaded data loader for the MNIST dataset. "D:\\\\data\\\\FashionMNIST"  "/Users/zhanghaining/Downloads/mnist"
+    val data_set = new MNIST("D:\\\\data\\\\FashionMNIST").map(new ExampleStack)
     val data_loader = new MNISTRandomDataLoader(
       data_set,
       new RandomSampler(data_set.size.get),

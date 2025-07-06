@@ -39,6 +39,7 @@ object feedForwardNeuralNetwork {
     val learning_rate = 0.001f
     val dataPath = Paths.get("D:\\data\\FashionMNIST")
     val dataPathCIFAR10 = Paths.get("D:\\data\\CIFAR10")
+    println(s"torch.cuda.isAvailable ${torch.cuda.isAvailable}")
     println("try to read cifar10 ...")
     //    val traincifar_dataset = CIFAR10(dataPathCIFAR10, train = true, download = true)
 

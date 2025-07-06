@@ -1,8 +1,7 @@
-package basic
-
 //import spire.random.Random
 
 import basic.LstmNetApp.device
+import basic.{LstmNet, NeuralNet}
 import org.bytedeco.javacpp.{FloatPointer, PointerScope}
 import org.bytedeco.pytorch.{OutputArchive, TensorExampleVectorIterator}
 import torch.*
@@ -21,7 +20,7 @@ import torch.internal.NativeConverters.{fromNative, toNative}
 
 import scala.util.{Random, Using}
 
-object logisticRegression03 extends App {
+object lstmGpu extends App {
 
   @main
   def main(): Unit =
@@ -49,7 +48,8 @@ object logisticRegression03 extends App {
         (torch.stack(features).to(device), torch.stack(targets).to(device))
       }
 
-    val model = NeuralNet[Float32](input_size, hidden_size, num_classes).to(device)
+    val model = LstmNet().to(device)
+//    val model = NeuralNet[Float32](input_size, hidden_size, num_classes).to(device)
 //    val model =   nn.Linear(input_size, num_classes).to(device) //LstmNet().to(device) //
     val criterion = nn.loss.CrossEntropyLoss().to(device)
     val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
@@ -104,7 +104,7 @@ object logisticRegression03 extends App {
 //          val trainDataTensor = fromNative(batch.data()).to(device)
           val ze = batch.data().shape
           //          println(s"ze: ${ze(0)} 1: ${ze(1)} 2 : ${ze(2)} ${ze(3)}")
-          val prediction = model(fromNative(batch.data().view(-1, 28 * 28)).reshape(-1, 28 * 28).to(device))
+          val prediction = model(fromNative(batch.data().view(-1, 28 * 28)).reshape(-1, 28 , 28).to(device))
           val loss = criterion(prediction, fromNative(batch.target()).to(device))
           loss.backward()
           optimizer.step()
@@ -124,7 +124,7 @@ object logisticRegression03 extends App {
               val correct = 0
               val total = 0
               println("coming eval...")
-              val predictions = model(evalFeatures.reshape(-1, 28 * 28))
+              val predictions = model(evalFeatures.reshape(-1, 28 ,28))
               println(s"predictions : ${predictions} \n")
               val evalLoss = criterion(predictions, evalTargets)
               println(s"evalLoss : ${evalLoss.item} \n")

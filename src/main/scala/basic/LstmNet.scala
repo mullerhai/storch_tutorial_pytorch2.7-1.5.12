@@ -57,8 +57,8 @@ class LstmNet[D <: BFloat16 | Float32 : Default](
 
   def apply(i: Tensor[D]): Tensor[D] =
     val arr = Seq(numLayers, i.size.head, hiddenSize.toInt)
-    val h0 = torch.zeros(size = arr, dtype = i.dtype)
-    val c0 = torch.zeros(size = arr, dtype = i.dtype)
+    val h0 = torch.zeros(size = arr, dtype = i.dtype).to(CUDA)
+    val c0 = torch.zeros(size = arr, dtype = i.dtype).to(CUDA)
     val outTuple3 = lstm(i, Some(h0), Some(c0))
     var out: Tensor[D] = outTuple3._1
     out = out.index(torch.indexing.::, -1, ::)
@@ -111,8 +111,10 @@ class GruNet[D <: BFloat16 | Float32 : Default](
 
 /** Shows how to train a simple LstmNet on the MNIST dataset */
 object LstmNetApp extends App {
+  System.setProperty("org.bytedeco.javacpp.nopointergc", "true")
   val device = if torch.cuda.isAvailable then CUDA else CPU
   println(s"Using device: $device")
+  println(s"torch.cuda.isAvailable ${torch.cuda.isAvailable}")
   //  val model  = GruNet().to(device)
   //  val model = LstmNet().to(device)
   //  val model = RnnNet().to(device)
@@ -123,8 +125,8 @@ object LstmNetApp extends App {
   //  val mnistTrain = MNIST(dataPath, train = true, download = true)
   //  val mnistEval = MNIST(dataPath, train = false)
   // "D:\\code\\data\\FashionMNIST"
-  //  val dataPath = Paths.get("data/FashionMNIST")
-  val dataPath = Paths.get("/Users/zhanghaining/Downloads/mnist")//D:\\data\\FashionMNIST")
+  //  val dataPath = Paths.get("data/FashionMNIST") /Users/zhanghaining/Downloads/mnist")
+  val dataPath = Paths.get("D:\\data\\FashionMNIST")
   val mnistTrain = FashionMNIST(dataPath, train = true, download = true)
   val mnistEval = FashionMNIST(dataPath, train = false)
   println(s"model ${model.modules.toSeq.mkString(" \n")}")
@@ -233,7 +235,7 @@ object LstmNetApp extends App {
   //  val data_loader = new DistributedRandomDataLoader(ds, new DistributedRandomSampler(ds.size.get), opts)
   //  val data_loader = new JavaRandomDataLoader(ds, new RandomSampler(ds.size.get), opts)
   println(s"ds.size.get {ds.size.get} data_loader option ${data_loader.options.batch_size()}")
-  for (epoch <- 1 to 2) {
+  for (epoch <- 1 to 20) {
     //    var it: ExampleVectorIterator = data_loader.begin
     //    var it :TensorExampleVectorIterator = data_loader.begin
     //    var it :TensorExampleIterator = data_loader.begin

@@ -27,6 +27,11 @@ class DeviceSuite extends ScalaCheckSuite {
     assertEquals(d, Device(d.toNative))
   }
 
+  test("device native roundtrip gpu") {
+    val d = Device("cuda")
+    assertEquals(d, Device(d.toNative))
+  }
+
   property("device native roundtrip for all") {
     forAll { (d: Device) =>
       assertEquals(d, Device(d.toNative))

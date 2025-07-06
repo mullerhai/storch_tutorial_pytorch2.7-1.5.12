@@ -1,7 +1,8 @@
-package basic
+package torch
 
 //import spire.random.Random
 
+import basic.FashionMNIST
 import basic.LstmNetApp.device
 import org.bytedeco.javacpp.{FloatPointer, PointerScope}
 import org.bytedeco.pytorch.{OutputArchive, TensorExampleVectorIterator}
@@ -21,7 +22,7 @@ import torch.internal.NativeConverters.{fromNative, toNative}
 
 import scala.util.{Random, Using}
 
-object logisticRegression03 extends App {
+object mnistMoeTraining extends App {
 
   @main
   def main(): Unit =
@@ -33,14 +34,36 @@ object logisticRegression03 extends App {
     val num_epochs = 500
     val batch_size = 100
     val learning_rate = 0.001f
+
+    val inputDim = 28 * 28
+    val dModel = 128
+    val numExperts = 4
+    val dFf = 512
+    val numLayers = 2
+    val numClasses = 10
+    val dropout = 0.1
     val dataPath = Paths.get("D:\\data\\FashionMNIST")
     val train_dataset = FashionMNIST(dataPath, train = true, download = true)
     val test_dataset = FashionMNIST(dataPath, train = false)
     println(s"torch.cuda.isAvailable ${torch.cuda.isAvailable}")
-//    println(s"torch.cuda.device_count ${torch.cuda.}")
-    val device = CUDA //if torch.cuda.isAvailable then CUDA else CPU
+    val device = if torch.cuda.isAvailable then CUDA else CPU
+
+    println(s"Using device: $device")
+
+    //    println(s"torch.cuda.device_count ${torch.cuda.}")
+    //    val device = CUDA //if torch.cuda.isAvailable then CUDA else CPU
     val evalFeatures = test_dataset.features.to(device)
     val evalTargets = test_dataset.targets.to(device)
+    // 初始化模型、损失函数和优化器
+    val model = new MoETransformerClassifier[Float32](inputDim, dModel, numExperts, dFf, numLayers, numClasses, dropout).to(device)
+    //    val model = new MoETransformerClassifier[Float32](inputDim, dModel, numExperts, dFf, numLayers, numClasses, dropout).to(device)
+
+    //    val model = NeuralNet[Float32](input_size, hidden_size, num_classes).to(device)
+    //    val model =   nn.Linear(input_size, num_classes).to(device) //LstmNet().to(device) //
+    val criterion = nn.loss.CrossEntropyLoss().to(device)
+    val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
+
+
     val r = Random(seed = 0)
 
     def dataLoader: Iterator[(Tensor[Float32], Tensor[Int64])] =
@@ -49,10 +72,6 @@ object logisticRegression03 extends App {
         (torch.stack(features).to(device), torch.stack(targets).to(device))
       }
 
-    val model = NeuralNet[Float32](input_size, hidden_size, num_classes).to(device)
-//    val model =   nn.Linear(input_size, num_classes).to(device) //LstmNet().to(device) //
-    val criterion = nn.loss.CrossEntropyLoss().to(device)
-    val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
 
     import org.bytedeco.pytorch.{ChunkDatasetOptions, Example, ExampleIterator, ExampleStack, ExampleVector, ExampleVectorIterator, JavaDataset, JavaDistributedRandomTensorDataLoader, JavaDistributedSequentialTensorDataLoader, JavaRandomDataLoader, JavaRandomTensorDataLoader, JavaSequentialTensorDataLoader, JavaStatefulDataset, JavaStreamDataLoader, RandomSampler, SizeTArrayRef, SizeTOptional, TensorExample, TensorExampleIterator, TensorExampleStack, TensorExampleVector, AbstractTensor as Tensor, ChunkDataReader as CDR, ChunkDataset as CD, ChunkRandomDataLoader as CRDL, ChunkSharedBatchDataset as CSBD, DataLoaderOptions as DLO, DistributedRandomSampler as DRS, DistributedSequentialSampler as DSS, JavaStreamDataset as JSD, JavaTensorDataset as TD, StreamSampler as STS}
     import torch.data.DataLoaderOptions
