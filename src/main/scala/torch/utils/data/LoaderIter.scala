@@ -1,44 +1,74 @@
 package torch
 package utils.data
 
+import basic.FashionMNIST
 import org.bytedeco.pytorch.{ChunkDataset, ChunkDatasetOptions, ChunkMapDataset, ChunkRandomDataLoader, ChunkSharedBatchDataset, Example, ExampleIterator, ExampleStack, ExampleVector}
-import torch.data.sampler.Sampler
+
+import scala.util.Random
+import torch.data.sampler.{RandomSampler, Sampler}
 import torch.data.DataLoaderOptions
 import torch.DType
 import torch.utils.data.Dataset
 import torch.Tensor
 import torch.data.datareader.ChunkDataReader
-
+import torch.Device.{CPU, CUDA}
+import org.bytedeco.javacpp.chrono.Milliseconds
+import java.nio.file.Paths
 import scala.collection.Iterator
 import scala.collection.mutable.ArrayBuffer
 
-// 假设这些类型和特质已经定义
+// 假设这些类型和特质已经定义 , TargetType <: DType :Int64
 //trait DType
-trait Dataset[ParamType <: DType : Default] {
-  def init(data: AnyRef*): Unit
+trait Dataset[ParamType <: DType : Default ] {
+//  def init(data: AnyRef*): Unit
   
   def length: Long
   
-  def getItem(idx: Int): (Tensor[ParamType], Tensor[ParamType])
+  def getItem(idx: Int): (Tensor[ParamType], Tensor[Int64])
   
-  def apply(data:AnyRef*):Unit =
-    init(data)
+//  def apply(data:AnyRef*):Unit =
+//    init(data)
 }
 
-case class DataLoaderOptions(batch_size: Int = 1, shuffle: Boolean = false, sampler: Sampler = null,
+case class DataLoaderOptions(batch_size: Int = 1, shuffle: Boolean = true, sampler: Sampler = null,
                              batch_sampler: Sampler = null, num_workers: Int = 0, collate_fn: Any = null,
                              pin_memory: Boolean = false, drop_last: Boolean = false, timeout: Int = 0,
                              worker_init_fn: Any = null, prefetch_factor: Int = 2,
                              persistent_workers: Boolean = false)
 
-//class Taobao3Dataset[ParamType <: DType : Default] extends Dataset[ParamType] {
-//  override def init(data: Seq[Number]): Unit = ???
-//  override def length: Long = ???
-//  override def getItem(idx: Int): (Tensor[ParamType], Tensor[ParamType]) = ???
-//}
+class MnistDataset extends Dataset[Float32] {
+//  override def init(data: Seq[Number]): Unit = {
+//
+//  }
+
+  val device = if torch.cuda.isAvailable then CUDA else CPU
+
+  println(s"Using device: $device")
+  val dataPath = Paths.get("D:\\data\\FashionMNIST")
+  val train_dataset = FashionMNIST(dataPath, train = true, download = true)
+  val test_dataset = FashionMNIST(dataPath, train = false)
+  val trainFeatures = train_dataset.features.to(device)
+  val trainTargets = train_dataset.targets.to(device)
+  val r = Random(seed = 0)
+
+  def dataLoader: Iterator[(Tensor[Float32], Tensor[Int64])] =
+    r.shuffle(train_dataset).grouped(8).map { batch =>
+      val (features, targets) = batch.unzip
+      (torch.stack(features).to(device), torch.stack(targets).to(device))
+    }
+  val data = dataLoader
+  println(s"train_dataset.features.shape.head ${train_dataset.features.shape.head}")
+  override def length: Long = train_dataset.features.shape.head
+  override def getItem(idx: Int): (Tensor[Float32], Tensor[Int64]) = {
+    val feature: Tensor[Float32] = train_dataset.features(idx)
+    val target: Tensor[Int64] = train_dataset.targets(idx)
+    (feature,target)
+
+  }
+}
 
 // 定义一个可迭代的类，用于遍历用户自定义数据集
-class DataLoaderIterable[ParamType <: DType : Default](dataset: Dataset[ParamType], options: DataLoaderOptions) extends Iterable[Example] {
+class TorchDataLoader[ParamType <: DType : Default](dataset: Dataset[ParamType], options: DataLoaderOptions) extends Iterable[Example] {
   // 转换用户自定义数据集为 Example 序列
   private def convertDatasetToExamples(): Seq[Example] = {
     val examples = new ArrayBuffer[Example]()
@@ -84,6 +114,11 @@ class DataLoaderIterable[ParamType <: DType : Default](dataset: Dataset[ParamTyp
   private def createChunkRandomDataLoader(ds: ChunkMapDataset, options: DataLoaderOptions): ChunkRandomDataLoader = {
     val loaderOpts = new org.bytedeco.pytorch.DataLoaderOptions(options.batch_size)
     loaderOpts.batch_size.put(options.batch_size)
+//    loaderOpts.timeout().put(new Milliseconds(options.timeout.toLong))
+    loaderOpts.drop_last().put(options.drop_last)
+    loaderOpts.enforce_ordering().put(!options.shuffle)
+    loaderOpts.workers().put(options.num_workers)
+    loaderOpts.max_jobs().put(4)
     new ChunkRandomDataLoader(ds, loaderOpts)
   }
 
@@ -111,12 +146,69 @@ class DataLoaderIterable[ParamType <: DType : Default](dataset: Dataset[ParamTyp
 }
 
 object testLoader {
-  
+  import torch.internal.NativeConverters.fromNative
   def main(args: Array[String]): Unit = {
-//    val dataset = new Taobao3Dataset[Float32]()
-//    val loader = new DataLoaderIterable[Float32](dataset, DataLoaderOptions(batch_size = 10))
-//    for (example <- loader) {
-//      println(example)
-//    }
+    //    System.setProperty( "org.bytedeco.javacpp.logger.debug" , "true")
+    System.setProperty("org.bytedeco.javacpp.nopointergc", "true")
+    val input_size = 28 * 28
+    val hidden_size = 500
+    val num_classes = 10
+    val num_epochs = 500
+    val batch_size = 100
+    val learning_rate = 0.001f
+
+    val inputDim = 28 * 28
+    val dModel = 128
+    val numExperts = 4
+    val dFf = 512
+    val numLayers = 2
+    val numClasses = 10
+    val dropout = 0.1
+    val device = if torch.cuda.isAvailable then CUDA else CPU
+    println(s"Using device: $device")
+    val dataPath = Paths.get("D:\\data\\FashionMNIST")
+    val test_dataset = FashionMNIST(dataPath, train = false)
+
+    val evalFeatures = test_dataset.features.to(device)
+    val evalTargets = test_dataset.targets.to(device)
+
+    val dataset = new MnistDataset()
+    val loader = new TorchDataLoader[Float32](dataset, DataLoaderOptions(batch_size = 6,shuffle = true , num_workers = 8))
+    var index  = 0
+    var batchIndex = 0
+    val model = new MoETransformerClassifier[Float32](inputDim, dModel, numExperts, dFf, numLayers, numClasses, dropout).to(device)
+
+    val criterion = nn.loss.CrossEntropyLoss().to(device)
+    val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
+    for (batch <- loader) {
+      optimizer.zeroGrad()
+      val prediction = model(fromNative(batch.data().view(-1, 28 * 28)).reshape(-1, 28 * 28).to(device))
+      val loss = criterion(prediction, fromNative(batch.target()).to(device))
+      loss.backward()
+      optimizer.step()
+      index += 1
+//      println(index)
+      batchIndex += 1
+      if batchIndex % 200 == 0 then
+        // run evaluation
+        torch.noGrad {
+          val correct = 0
+          val total = 0
+          println("coming eval...")
+          val predictions = model(evalFeatures.reshape(-1, 28 * 28))
+          println(s"predictions : ${predictions} \n")
+          val evalLoss = criterion(predictions, evalTargets)
+          println(s"evalLoss : ${evalLoss.item} \n")
+          println(s"predictions : ${predictions} \n")
+
+          val accuracy =
+            (predictions.argmax(dim = 1).eq(evalTargets).sum / test_dataset.length).item
+          println(
+            f"Epoch: epoch | Batch: $batchIndex%4d | Training loss: ${loss.item}%.4f | Eval loss: ${evalLoss.item}%.4f | Eval accuracy: $accuracy%.4f"
+          )
+        }
+//      println(fromNative(example.data()))
+//      println(fromNative(example.target()))
+    }
   }
 }

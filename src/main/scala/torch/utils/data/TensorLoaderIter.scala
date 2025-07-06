@@ -37,7 +37,7 @@ case class TensorDataLoaderOptions(batch_size: Int = 1, shuffle: Boolean = false
 //}
 
 // 定义一个可迭代的类，用于遍历用户自定义张量数据集
-class TensorDataLoaderIterable[ParamType <: DType : Default](dataset: TensorDataset[ParamType], options: TensorDataLoaderOptions) extends Iterable[TensorExample] {
+class TorchTensorDataLoader[ParamType <: DType : Default](dataset: TensorDataset[ParamType], options: TensorDataLoaderOptions) extends Iterable[TensorExample] {
   // 转换用户自定义数据集为 TensorExample 序列
   private def convertDatasetToTensorExamples(): Seq[TensorExample] = {
     val tensorExamples = new ArrayBuffer[TensorExample]()

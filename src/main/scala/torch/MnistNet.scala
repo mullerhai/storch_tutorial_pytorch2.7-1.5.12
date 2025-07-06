@@ -5,7 +5,7 @@ import torch.nn
 import torch.{Float32, Tensor}
 import torch.nn.functional as F
 import torch.nn.modules.TensorModule
-import torch.Device.{CPU, CUDA}
+import torch.Device.{CPU as CUDA, CUDA as GPU}
 import torch.optim.Adam
 
 object  mn extends App{
@@ -19,7 +19,7 @@ object  mn extends App{
     val numLayers = 2
     val numClasses = 10
     val dropout = 0.1
-    val device = if torch.cuda.isAvailable then CUDA else CPU
+    val device = if torch.cuda.isAvailable then CUDA else GPU
     println(s"Using device: $device")
     // 初始化模型、损失函数和优化器
     val model = new MoETransformerClassifier[Float32](inputDim, dModel, numExperts, dFf, numLayers, numClasses, dropout).to(device)
