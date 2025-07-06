@@ -37,9 +37,6 @@ case class DataLoaderOptions(batch_size: Int = 1, shuffle: Boolean = true, sampl
                              persistent_workers: Boolean = false)
 
 class MnistDataset extends Dataset[Float32] {
-//  override def init(data: Seq[Number]): Unit = {
-//
-//  }
 
   val device = if torch.cuda.isAvailable then CUDA else CPU
 
@@ -145,7 +142,7 @@ class TorchDataLoader[ParamType <: DType : Default](dataset: Dataset[ParamType],
   }
 }
 
-object testLoader {
+object datasetLoaderTraining {
   import torch.internal.NativeConverters.fromNative
   def main(args: Array[String]): Unit = {
     //    System.setProperty( "org.bytedeco.javacpp.logger.debug" , "true")
@@ -153,10 +150,9 @@ object testLoader {
     val input_size = 28 * 28
     val hidden_size = 500
     val num_classes = 10
-    val num_epochs = 500
+    val num_epochs = 50
     val batch_size = 100
     val learning_rate = 0.001f
-
     val inputDim = 28 * 28
     val dModel = 128
     val numExperts = 4
@@ -173,42 +169,40 @@ object testLoader {
     val evalTargets = test_dataset.targets.to(device)
 
     val dataset = new MnistDataset()
-    val loader = new TorchDataLoader[Float32](dataset, DataLoaderOptions(batch_size = 6,shuffle = true , num_workers = 8))
+    val loader = new TorchDataLoader[Float32](dataset, DataLoaderOptions(batch_size = 60,shuffle = true , num_workers = 8))
     var index  = 0
     var batchIndex = 0
     val model = new MoETransformerClassifier[Float32](inputDim, dModel, numExperts, dFf, numLayers, numClasses, dropout).to(device)
 
     val criterion = nn.loss.CrossEntropyLoss().to(device)
     val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
-    for (batch <- loader) {
-      optimizer.zeroGrad()
-      val prediction = model(fromNative(batch.data().view(-1, 28 * 28)).reshape(-1, 28 * 28).to(device))
-      val loss = criterion(prediction, fromNative(batch.target()).to(device))
-      loss.backward()
-      optimizer.step()
-      index += 1
-//      println(index)
-      batchIndex += 1
-      if batchIndex % 200 == 0 then
-        // run evaluation
-        torch.noGrad {
-          val correct = 0
-          val total = 0
-          println("coming eval...")
-          val predictions = model(evalFeatures.reshape(-1, 28 * 28))
-          println(s"predictions : ${predictions} \n")
-          val evalLoss = criterion(predictions, evalTargets)
-          println(s"evalLoss : ${evalLoss.item} \n")
-          println(s"predictions : ${predictions} \n")
+    (1 to num_epochs).foreach(epoch => {
+      for (batch <- loader) {
+        optimizer.zeroGrad()
+        val prediction = model(fromNative(batch.data().view(-1, 28 * 28)).reshape(-1, 28 * 28).to(device))
+        val loss = criterion(prediction, fromNative(batch.target()).to(device))
+        loss.backward()
+        optimizer.step()
+        index += 1
+        batchIndex += 1
+        if batchIndex % 200 == 0 then
+          // run evaluation
+          torch.noGrad {
+            val correct = 0
+            val total = 0
+            val predictions = model(evalFeatures.reshape(-1, 28 * 28))
+            val evalLoss = criterion(predictions, evalTargets)
+            println(s"evalLoss : ${evalLoss.item} \n")
+            println(s"predictions : ${predictions} \n")
 
-          val accuracy =
-            (predictions.argmax(dim = 1).eq(evalTargets).sum / test_dataset.length).item
-          println(
-            f"Epoch: epoch | Batch: $batchIndex%4d | Training loss: ${loss.item}%.4f | Eval loss: ${evalLoss.item}%.4f | Eval accuracy: $accuracy%.4f"
-          )
-        }
-//      println(fromNative(example.data()))
-//      println(fromNative(example.target()))
-    }
+            val accuracy =
+              (predictions.argmax(dim = 1).eq(evalTargets).sum / test_dataset.length).item
+            println(
+              f"Epoch: $epoch | Batch: $batchIndex%4d | Training loss: ${loss.item}%.4f | Eval loss: ${evalLoss.item}%.4f | Eval accuracy: $accuracy%.4f"
+            )
+          }
+      }
+    })
+
   }
 }

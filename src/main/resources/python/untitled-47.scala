@@ -1,108 +1,122 @@
-import torch.*
-import torch.nn.*
-import torch.optim.*
-import torch.utils.data.*
-import torch.utils.data.ChunkRandomDataLoader
-import torch.utils.data.ChunkMapDataset
+import java.io.{BufferedReader, InputStreamReader}
+import java.net.URL
+import java.nio.file.{Files, Paths}
+import java.util.zip.GZIPInputStream
+import scala.collection.mutable
+import scala.util.Random
+import org.platanios.tensorflow.api._
+import org.platanios.torch.jni
+import org.platanios.torch.api._
+import org.platanios.torch.api.data.{Dataset, DataLoader}
+import org.platanios.torch.api.tensors.Tensor
+import scala.util.Using
+import java.util.zip.ZipInputStream
 
-// 检查 GPU 是否可用
-val device = if torch.cuda.isAvailable() then torch.device("cuda") else torch.device("cpu")
-println(s"Using device: $device")
+class ImdbDataset(root: String, train: Boolean = true, download: Boolean = true) extends Dataset[(Tensor, Tensor)] {
+  private val baseUrl = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
+  private val tarGzPath = Paths.get(root, "aclImdb_v1.tar.gz")
+  private val dataDir = Paths.get(root, "aclImdb")
+  private val trainDir = Paths.get(dataDir.toString, "train")
+  private val testDir = Paths.get(dataDir.toString, "test")
 
-// 自定义 TaobaoDataset
-class TaobaoDataset(numUsers: Int = 1000, numItems: Int = 500, numSamples: Int = 10000) extends Dataset[Tensor[Long], (Tensor[Long], Tensor[Float32])]:
-  val userIds = torch.randint(0, numUsers, numSamples).to(torch.long)
-  val itemIds = torch.randint(0, numItems, numSamples).to(torch.long)
-  val labels = torch.randint(0, 2, numSamples).to(torch.float32)
+  if (download) {
+    downloadData()
+  }
 
-  def len(): Int = userIds.size(0)
+  private val dataDirToUse = if (train) trainDir else testDir
+  if (!Files.exists(dataDirToUse)) {
+    throw new RuntimeException("Dataset not found. You can use download = true to download it.")
+  }
 
-  def apply(idx: Int): (Tensor[Long], Tensor[Long], Tensor[Float32]) =
-    (userIds(idx), itemIds(idx), labels(idx))
+  private var reviews: Seq[Tensor] = _
+  private var labels: Seq[Tensor] = _
+  private val vocab = mutable.Map[String, Int]().withDefaultValue(0)
+  private val maxVocabSize = 10000
 
-// 将 TaobaoDataset 转换为 ChunkMapDataset
-val taobaoDataset = new TaobaoDataset()
-val chunkMapDataset = new ChunkMapDataset(
-  len = taobaoDataset.len(),
-  get = (idx: Int) => taobaoDataset(idx)
-)
+  loadData()
 
-// 使用 ChunkRandomDataLoader
-val batchSize = 64
-val trainLoader = new ChunkRandomDataLoader(
-  dataset = chunkMapDataset,
-  batchSize = batchSize,
-  shuffle = true
-)
+  private def downloadData(): Unit = {
+    if (Files.exists(dataDir)) return
+    Files.createDirectories(Paths.get(root))
+    println("Downloading IMDB dataset...")
+    val in = new URL(baseUrl).openStream()
+    val out = Files.newOutputStream(tarGzPath)
+    in.transferTo(out)
+    in.close()
+    out.close()
+    println("Download complete. Extracting...")
+    import sys.process._
+    s"tar -xzf ${tarGzPath} -C ${root}".!
+    println("Extraction complete.")
+  }
 
-// 定义 MoE 层
-class MoE(numExperts: Int, dModel: Int, numClasses: Int) extends Module:
-  val experts = ModuleList[Linear](Seq.fill(numExperts)(new Linear(dModel, numClasses)))
-  val gate = new Linear(dModel, numExperts)
+  private def buildVocab(): Unit = {
+    val wordCount = mutable.Map[String, Int]()
+    val dirs = Seq(Paths.get(trainDir.toString, "pos"), Paths.get(trainDir.toString, "neg"))
+    for {
+      dir <- dirs
+      file <- Files.newDirectoryStream(dir)
+      content = Files.readString(file)
+      words = content.toLowerCase().split("\\W+")
+      word <- words
+    } {
+      wordCount(word) = wordCount.getOrElse(word, 0) + 1
+    }
 
-  def forward(x: Tensor[Float32]): Tensor[Float32] =
-    val gateOutput = gate(x)
-    val gateWeights = torch.softmax(gateOutput, dim = 1)
-    val expertOutputs = torch.stack(experts.map(_(x)), dim = 1)
-    val output = torch.sum(gateWeights.unsqueeze(-1) * expertOutputs, dim = 1)
-    output
+    val sortedWords = wordCount.toSeq.sortBy(-_._2).take(maxVocabSize - 1)
+    sortedWords.zipWithIndex.foreach { case ((word, _), idx) =>
+      vocab(word) = idx + 1
+    }
+  }
 
-// 定义 Transformer MoE 推荐模型
-class TransformerMoERecommender(numUsers: Int, numItems: Int, dModel: Int, nhead: Int, numLayers: Int, numExperts: Int, dropout: Double) extends Module:
-  val userEmbedding = new Embedding(numUsers, dModel)
-  val itemEmbedding = new Embedding(numItems, dModel)
-  val transformerEncoder = new TransformerEncoder(
-    new TransformerEncoderLayer(d_model = dModel, nhead = nhead, dropout = dropout),
-    num_layers = numLayers
-  )
-  val moe = new MoE(numExperts, dModel, 1)
-  val dropoutLayer = new Dropout(dropout)
+  private def loadData(): Unit = {
+    buildVocab()
+    println("Loading IMDB dataset...")
+    val allReviews = mutable.ListBuffer[Tensor]()
+    val allLabels = mutable.ListBuffer[Tensor]()
 
-  def forward(userIds: Tensor[Long], itemIds: Tensor[Long]): Tensor[Float32] =
-    val userEmbed = userEmbedding(userIds).asInstanceOf[Tensor[Float32]]
-    val itemEmbed = itemEmbedding(itemIds).asInstanceOf[Tensor[Float32]]
-    val combinedEmbed = userEmbed + itemEmbed
-    val combinedEmbedSeq = combinedEmbed.unsqueeze(0) // 添加序列维度
-    var output = transformerEncoder(combinedEmbedSeq)
-    output = output.squeeze(0)
-    output = moe(output)
-    torch.sigmoid(output).squeeze()
+    val posDir = Paths.get(dataDirToUse.toString, "pos")
+    val negDir = Paths.get(dataDirToUse.toString, "neg")
 
-// 模型参数
-val NUM_USERS = 1000
-val NUM_ITEMS = 500
-val D_MODEL = 128
-val NHEAD = 4
-val NUM_LAYERS = 2
-val NUM_EXPERTS = 4
-val DROPOUT = 0.5
+    for {
+      (dir, label) <- Seq((posDir, 1), (negDir, 0))
+      file <- Files.newDirectoryStream(dir)
+    } {
+      val content = Files.readString(file)
+      val words = content.toLowerCase().split("\\W+")
+      val reviewIndices = words.map(word => vocab(word)).toArray
+      allReviews += Tensor(reviewIndices, dtype = Int64)
+      allLabels += Tensor(label, dtype = Float32)
+    }
 
-// 初始化模型、损失函数和优化器
-val model = new TransformerMoERecommender(NUM_USERS, NUM_ITEMS, D_MODEL, NHEAD, NUM_LAYERS, NUM_EXPERTS, DROPOUT).to(device)
-val criterion = new BCELoss()
-val optimizer = new Adam(model.parameters(), lr = 0.001)
+    reviews = allReviews.toSeq
+    labels = allLabels.toSeq
+  }
 
-// 训练函数
-def train(model: Module, dataloader: ChunkRandomDataLoader[(Tensor[Long], Tensor[Long], Tensor[Float32])], optimizer: Optimizer, criterion: Loss[Float32]): Double =
-  model.train()
-  var totalLoss = 0.0
-  for batch <- dataloader do
-    val (userIds, itemIds, labels) = batch
-    val userIdsDevice = userIds.to(device)
-    val itemIdsDevice = itemIds.to(device)
-    val labelsDevice = labels.to(device)
-    optimizer.zeroGrad()
-    val outputs = model(userIdsDevice, itemIdsDevice).asInstanceOf[Tensor[Float32]]
-    val loss = criterion(outputs, labelsDevice)
-    loss.backward()
-    optimizer.step()
-    totalLoss += loss.item()
-  totalLoss / dataloader.len()
+  override def size: Int = reviews.size
 
-// 训练循环
-val N_EPOCHS = 10
-for epoch <- 1 to N_EPOCHS do
-  val trainLoss = train(model, trainLoader, optimizer, criterion)
-  println(f"Epoch $epoch/$N_EPOCHS, Train Loss: $trainLoss%.4f")
+  override def apply(index: Int): (Tensor, Tensor) = {
+    (reviews(index), labels(index))
+  }
+}
 
-println("Training finished.")
+object ImdbDatasetExample extends App {
+  // 初始化训练集
+  val trainDataset = new ImdbDataset(root = "./data", train = true, download = true)
+  // 初始化测试集
+  val testDataset = new ImdbDataset(root = "./data", train = false)
+
+  println(s"Train dataset size: ${trainDataset.size}")
+  println(s"Test dataset size: ${testDataset.size}")
+
+  // 获取第一个样本
+  val (review, label) = trainDataset(0)
+  println(s"Review indices length: ${review.size}, Label: ${label}")
+
+  // 使用 DataLoader
+  val trainLoader = DataLoader(trainDataset, batchSize = 16, shuffle = true)
+  trainLoader.foreach { batch =>
+    val (batchReviews, batchLabels) = batch
+    println(s"Batch - Reviews shape: ${batchReviews.shape}, Labels shape: ${batchLabels.shape}")
+  }
+}
