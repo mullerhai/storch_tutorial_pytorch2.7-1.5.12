@@ -2,9 +2,9 @@
 //package utils.data
 //
 //import org.bytedeco.pytorch.ExampleIterator
-//import torch.data.dataloader.ChunkRandomDataLoader
-//import torch.data.dataset.ChunkDataset
-//import torch.data.sampler.Sampler
+//import torch.utils.data.dataloader.ChunkRandomDataLoader
+//import torch.utils.data.dataset.ChunkDataset
+//import torch.utils.data.sampler.Sampler
 //
 //trait DataLoader[ParamType <: DType :Default](dataset: Dataset[ParamType], options: DataLoaderOptions ) extends Iterable[ParamType] {
 //

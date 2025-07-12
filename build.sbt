@@ -9,9 +9,13 @@ lazy val root = (project in file("."))
 Compile / scalacOptions ++= Seq("--add-modules", "jdk.incubator.vector")
 run / fork := true
 run / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector")
+//resolvers += Resolver.sonatypeRepo("releases")
+resolvers += "center" at "https://repo1.maven.org/maven2/"
+//resolvers += "aliyun" at "https://maven.aliyun.com/repository/public"
+libraryDependencies += "io.github.mullerhai" % "storch-numpy_3" % "0.1.1"
 
-resolvers += "aliyun" at "https://maven.aliyun.com/repository/public"
-libraryDependencies += "io.github.mullerhai" % "storch_core_3" % "0.3.7-1.15.2"
+
+libraryDependencies += "io.github.mullerhai" % "storch_core_3" % "0.3.9-1.15.2"
 libraryDependencies += "org.bytedeco" % "pytorch" % "2.7.1-1.5.12"
 libraryDependencies += "org.bytedeco" % "pytorch-platform-gpu" % "2.7.1-1.5.12"  //classifier "windows-x86_64"
 libraryDependencies += "org.bytedeco" % "openblas" % "0.3.30-1.5.12"

@@ -20,7 +20,7 @@ package basic
 //
 //import org.bytedeco.pytorch
 //import torch.Tensor.fromNative
-//import torch.data.TensorDataset
+//import torch.utils.data.TensorDataset
 //import torch.{CIFARBase, Float32, Int64}
 //
 //import java.io.{FileInputStream, ObjectInputStream}

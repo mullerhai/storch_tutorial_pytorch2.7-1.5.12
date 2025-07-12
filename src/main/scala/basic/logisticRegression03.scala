@@ -7,7 +7,7 @@ import org.bytedeco.javacpp.{FloatPointer, PointerScope}
 import org.bytedeco.pytorch.{OutputArchive, TensorExampleVectorIterator}
 import torch.*
 import torch.Device.{CPU, CUDA}
-import torch.data.dataset.ChunkSharedBatchDataset
+import torch.utils.data.dataset.ChunkSharedBatchDataset
 import torch.nn.functional as F
 import torch.nn.modules.HasParams
 import torch.optim.Adam
@@ -54,13 +54,13 @@ object logisticRegression03 extends App {
     val criterion = nn.loss.CrossEntropyLoss().to(device)
     val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
 
-    import org.bytedeco.pytorch.{ChunkDatasetOptions, Example, ExampleIterator, ExampleStack, ExampleVector, ExampleVectorIterator, JavaDataset, JavaDistributedRandomTensorDataLoader, JavaDistributedSequentialTensorDataLoader, JavaRandomDataLoader, JavaRandomTensorDataLoader, JavaSequentialTensorDataLoader, JavaStatefulDataset, JavaStreamDataLoader, RandomSampler, SizeTArrayRef, SizeTOptional, TensorExample, TensorExampleIterator, TensorExampleStack, TensorExampleVector, AbstractTensor as Tensor, ChunkDataReader as CDR, ChunkDataset as CD, ChunkRandomDataLoader as CRDL, ChunkSharedBatchDataset as CSBD, DataLoaderOptions as DLO, DistributedRandomSampler as DRS, DistributedSequentialSampler as DSS, JavaStreamDataset as JSD, JavaTensorDataset as TD, StreamSampler as STS}
-    import torch.data.DataLoaderOptions
-    import torch.data.dataloader.*
-    import torch.data.datareader.{ChunkDataReader, ChunkTensorDataReader, ExampleVectorReader, TensorExampleVectorReader}
-    import torch.data.dataset.*
-    import torch.data.dataset.java.{StatefulDataset, StatefulTensorDataset, StreamDataset, StreamTensorDataset, TensorDataset, JavaDataset as JD}
-    import torch.data.sampler.{DistributedRandomSampler, DistributedSequentialSampler, StreamSampler, RandomSampler as RS, SequentialSampler as SS}
+    import org.bytedeco.pytorch.{ChunkDatasetOptions,DataLoaderOptions, Example, ExampleIterator, ExampleStack, ExampleVector, ExampleVectorIterator, JavaDataset, JavaDistributedRandomTensorDataLoader, JavaDistributedSequentialTensorDataLoader, JavaRandomDataLoader, JavaRandomTensorDataLoader, JavaSequentialTensorDataLoader, JavaStatefulDataset, JavaStreamDataLoader, RandomSampler, SizeTArrayRef, SizeTOptional, TensorExample, TensorExampleIterator, TensorExampleStack, TensorExampleVector, AbstractTensor as Tensor, ChunkDataReader as CDR, ChunkDataset as CD, ChunkRandomDataLoader as CRDL, ChunkSharedBatchDataset as CSBD, DataLoaderOptions as DLO, DistributedRandomSampler as DRS, DistributedSequentialSampler as DSS, JavaStreamDataset as JSD, JavaTensorDataset as TD, StreamSampler as STS}
+//    import torch.utils.data.DataLoaderOptions
+    import torch.utils.data.dataloader.*
+    import torch.utils.data.datareader.{ChunkDataReader, ChunkTensorDataReader, ExampleVectorReader, TensorExampleVectorReader}
+    import torch.utils.data.dataset.*
+    import torch.utils.data.dataset.java.{StatefulDataset, StatefulTensorDataset, StreamDataset, StreamTensorDataset, TensorDataset, JavaDataset as JD}
+    import torch.utils.data.sampler.{DistributedRandomSampler, DistributedSequentialSampler, StreamSampler, RandomSampler as RS, SequentialSampler as SS}
 
     def exampleVectorToExample(exVec: ExampleVector): Example = {
       val example = new Example(exVec.get(0).data(), exVec.get(0).target())

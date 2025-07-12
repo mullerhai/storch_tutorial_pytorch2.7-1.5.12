@@ -17,7 +17,8 @@
 import org.bytedeco.pytorch
 import torch.*
 import torch.Tensor.fromNative
-import torch.data.TensorDataset
+import torch.utils.data.TensorDataset
+//import torch.utils.data.TensorDataset
 
 import java.net.URL
 import java.nio.file.{Files, Path}

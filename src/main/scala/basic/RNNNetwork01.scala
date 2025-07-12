@@ -4,18 +4,16 @@ import org.bytedeco.javacpp.{FloatPointer, PointerScope}
 import org.bytedeco.pytorch.{OutputArchive, TensorExampleVectorIterator}
 import torch.Device.{CPU, CUDA}
 import torch.{FloatNN, *}
-import torch.data.DataLoaderOptions
-import torch.data.dataloader.*
-import torch.data.datareader.{ChunkDataReader, ChunkTensorDataReader, ExampleVectorReader, TensorExampleVectorReader}
+import torch.utils.data.datareader.{ChunkDataReader, ChunkTensorDataReader, ExampleVectorReader, TensorExampleVectorReader}
 import torch.nn.functional as F
 import torch.nn.modules.HasParams
 import torch.optim.Adam
 //import torchvision.datasets.FashionMNIST
 
 import java.nio.file.Paths
-import torch.data.dataset.*
-import torch.data.dataset.java.{StatefulDataset, StatefulTensorDataset, StreamDataset, StreamTensorDataset, TensorDataset, JavaDataset as JD}
-import torch.data.sampler.{DistributedRandomSampler, DistributedSequentialSampler, StreamSampler, RandomSampler as RS, SequentialSampler as SS}
+import torch.utils.data.dataset.*
+import torch.utils.data.dataset.java.{StatefulDataset, StatefulTensorDataset, StreamDataset, StreamTensorDataset, TensorDataset, JavaDataset as JD}
+import torch.utils.data.sampler.{DistributedRandomSampler, DistributedSequentialSampler, StreamSampler, RandomSampler as RS, SequentialSampler as SS}
 import torch.internal.NativeConverters.fromNative
 
 import scala.util.{Random, Using}
@@ -102,12 +100,12 @@ object RNNNetwork01 extends App {
       )
     ).map(new ExampleStack)
 
-    val opts = new DataLoaderOptions(100)
+    val opts = new DLO(100)
     //  opts.workers.put(5)
     opts.batch_size.put(100)
     //  opts.enforce_ordering.put(true)
     //  opts.drop_last.put(false)
-    val data_loader = new ChunkRandomDataLoader(ds, opts)
+    val data_loader = new CRDL(ds, opts)
     val total_step: Int = 2000 // train_dataset.length // 2000 //data_loader //
     (1 to num_epochs).foreach(epoch => {
       var it: ExampleIterator = data_loader.begin

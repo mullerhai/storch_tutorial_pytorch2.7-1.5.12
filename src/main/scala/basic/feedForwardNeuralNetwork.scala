@@ -61,8 +61,8 @@ object feedForwardNeuralNetwork {
     val model = NeuralNet[Float32](input_size, hidden_size, num_classes).to(device)
     val optimizer = torch.optim.SGD(model.parameters(true), lr = learning_rate)
     import org.bytedeco.pytorch.*
-    import torch.data.DataLoaderOptions
-    import torch.data.datareader.ChunkDataReader
+//    import torch.utils.data.DataLoaderOptions
+    import torch.utils.data.datareader.ChunkDataReader
     def exampleVectorToExample(exVec: ExampleVector): Example = {
       val example = new Example(exVec.get(0).data(), exVec.get(0).target())
       example

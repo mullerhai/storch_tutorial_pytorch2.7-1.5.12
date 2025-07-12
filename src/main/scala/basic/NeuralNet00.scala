@@ -3,16 +3,16 @@ package basic
 import org.bytedeco.javacpp.{FloatPointer, PointerScope}
 import org.bytedeco.pytorch.{OutputArchive, TensorExampleVectorIterator}
 import torch.Device.{CPU, CUDA}
-import torch.data.DataLoaderOptions
-import torch.data.dataloader.*
-import torch.data.datareader.{ChunkDataReader, ChunkTensorDataReader, ExampleVectorReader, TensorExampleVectorReader}
+import torch.utils.data.DataLoaderOptions
+import torch.utils.data.dataloader.*
+import torch.utils.data.datareader.{ChunkDataReader, ChunkTensorDataReader, ExampleVectorReader, TensorExampleVectorReader}
 import torch.nn.functional as F
 import torch.optim.Adam
 
 import java.nio.file.Paths
-import torch.data.dataset.*
-import torch.data.dataset.java.{StatefulDataset, StatefulTensorDataset, StreamDataset, StreamTensorDataset, TensorDataset, JavaDataset as JD}
-import torch.data.sampler.{DistributedRandomSampler, DistributedSequentialSampler, StreamSampler, RandomSampler as RS, SequentialSampler as SS}
+import torch.utils.data.dataset.*
+import torch.utils.data.dataset.java.{StatefulDataset, StatefulTensorDataset, StreamDataset, StreamTensorDataset, TensorDataset, JavaDataset as JD}
+import torch.utils.data.sampler.{DistributedRandomSampler, DistributedSequentialSampler, StreamSampler, RandomSampler as RS, SequentialSampler as SS}
 import torch.internal.NativeConverters.fromNative
 import torch.nn.modules.HasParams
 import torch.*

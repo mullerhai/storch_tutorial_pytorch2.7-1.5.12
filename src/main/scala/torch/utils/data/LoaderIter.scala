@@ -5,17 +5,18 @@ import basic.FashionMNIST
 import org.bytedeco.pytorch.{ChunkDataset, ChunkDatasetOptions, ChunkMapDataset, ChunkRandomDataLoader, ChunkSharedBatchDataset, Example, ExampleIterator, ExampleStack, ExampleVector}
 
 import scala.util.Random
-import torch.data.sampler.{RandomSampler, Sampler}
-import torch.data.DataLoaderOptions
+import torch.utils.data.sampler.{RandomSampler, Sampler}
+import torch.utils.data.DataLoaderOptions
 import torch.DType
 import torch.utils.data.Dataset
 import torch.Tensor
-import torch.data.datareader.ChunkDataReader
+import torch.utils.data.datareader.ChunkDataReader
 import torch.Device.{CPU, CUDA}
 import org.bytedeco.javacpp.chrono.Milliseconds
+
 import java.nio.file.Paths
 import scala.collection.Iterator
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 // 假设这些类型和特质已经定义 , TargetType <: DType :Int64
 //trait DType
@@ -48,12 +49,12 @@ class MnistDataset extends Dataset[Float32] {
   val trainTargets = train_dataset.targets.to(device)
   val r = Random(seed = 0)
 
-  def dataLoader: Iterator[(Tensor[Float32], Tensor[Int64])] =
-    r.shuffle(train_dataset).grouped(8).map { batch =>
-      val (features, targets) = batch.unzip
-      (torch.stack(features).to(device), torch.stack(targets).to(device))
-    }
-  val data = dataLoader
+//  def dataLoader: Iterator[(Tensor[Float32], Tensor[Int64])] =
+//    r.shuffle(train_dataset).grouped(8).map { batch =>
+//      val (features, targets) = batch.unzip
+//      (torch.stack(features).to(device), torch.stack(targets).to(device))
+//    }
+//  val data = dataLoader
   println(s"train_dataset.features.shape.head ${train_dataset.features.shape.head}")
   override def length: Long = train_dataset.features.shape.head
   override def getItem(idx: Int): (Tensor[Float32], Tensor[Int64]) = {
@@ -92,7 +93,6 @@ class TorchDataLoader[ParamType <: DType : Default](dataset: Dataset[ParamType],
 
   // 创建 ChunkDataset
   private def createChunkDataset(reader: ChunkDataReader, examples: Seq[Example], options: DataLoaderOptions): ChunkDataset = {
-    import torch.data.sampler.RandomSampler
     val prefetch_count = 1
     new ChunkDataset(
       reader,
@@ -147,10 +147,13 @@ object datasetLoaderTraining {
   def main(args: Array[String]): Unit = {
     //    System.setProperty( "org.bytedeco.javacpp.logger.debug" , "true")
     System.setProperty("org.bytedeco.javacpp.nopointergc", "true")
+//    var trainLossBuffer = new ListBuffer[Float]()
+//    val evalLossBuffer = new ListBuffer[Float]()
+//    val evalAccuracyBuffer = new ListBuffer[Float]()
     val input_size = 28 * 28
     val hidden_size = 500
     val num_classes = 10
-    val num_epochs = 50
+    val num_epochs = 2
     val batch_size = 100
     val learning_rate = 0.001f
     val inputDim = 28 * 28
@@ -197,12 +200,21 @@ object datasetLoaderTraining {
 
             val accuracy =
               (predictions.argmax(dim = 1).eq(evalTargets).sum / test_dataset.length).item
+
             println(
               f"Epoch: $epoch | Batch: $batchIndex%4d | Training loss: ${loss.item}%.4f | Eval loss: ${evalLoss.item}%.4f | Eval accuracy: $accuracy%.4f"
             )
+//            trainLossBuffer += loss.item.toFloat
+//            evalLossBuffer += evalLoss.item.toFloat
+//            evalAccuracyBuffer += accuracy.toFloat
+
           }
       }
     })
 
+//    val plotSize = trainLossBuffer.size
+//    trainLossBuffer.foreach(println(_))
+//    evalLossBuffer.foreach(println(_))
+//    evalAccuracyBuffer.foreach(println(_))
   }
 }

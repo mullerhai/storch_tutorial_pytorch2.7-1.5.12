@@ -1,8 +1,8 @@
 //package torch.utils.data
 //
 //import org.bytedeco.pytorch.{DataLoaderOptions, ExampleVector, ExampleVectorIterator, ExampleVectorReader, JavaStreamDataLoader, StreamBatchDataset, StreamDataset, StreamSampler}
-//import torch.data.datareader.ExampleVectorReader
-//import torch.data.dataset.java.{StreamBatchDataset, StreamDataset}
+//import torch.utils.data.datareader.ExampleVectorReader
+//import torch.utils.data.dataset.java.{StreamBatchDataset, StreamDataset}
 //
 //import scala.collection.Iterator
 //import scala.collection.mutable.ArrayBuffer
@@ -69,8 +69,8 @@
 //}
 //
 //// 创建 StreamSampler 和 DataLoaderOptions
-//import torch.data.sampler.StreamSampler
-//import torch.data.DataLoaderOptions
+//import torch.utils.data.sampler.StreamSampler
+//import torch.utils.data.DataLoaderOptions
 //
 //val sampler = new StreamSampler()
 //val options = new DataLoaderOptions(batch_size = 2)
